@@ -2,13 +2,11 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import mlflow
 import mlflow.pyfunc
-import numpy as np
 import pandas as pd
-import os
 
 app = FastAPI()
 model_name = "tracking-quickstart"
-model_version = "1"
+initial_model_version = "1"
 model = None
 mlflow.set_tracking_uri(uri="http://127.0.0.1:8080")
 
@@ -19,9 +17,9 @@ class PredictRequest(BaseModel):
 def load_model():
     global model
     try:
-        model_uri = f"models:/{model_name}/{model_version}"
+        model_uri = f"models:/{model_name}/{initial_model_version}"
         model = mlflow.pyfunc.load_model(model_uri)
-        print(f"Loaded model {model_name} version {model_version}")
+        print(f"Loaded model {model_name} version {initial_model_version}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to load model: {e}")
 
@@ -37,11 +35,10 @@ def predict(request: PredictRequest):
 
 @app.post("/update-model")
 def update_model(new_version: str):
-    global model, model_version
+    global model
     try:
         model_uri = f"models:/{model_name}/{new_version}"
         model = mlflow.pyfunc.load_model(model_uri)
-        model_version = new_version
         return {"message": f"Model updated to version {new_version}, model : {model}"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to update model: {e}")
